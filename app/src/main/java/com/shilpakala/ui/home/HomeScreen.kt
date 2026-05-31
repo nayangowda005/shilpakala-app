@@ -86,7 +86,7 @@ fun HomeScreen(
                 backgroundColor = Terracotta,
                 textColor = WarmCream,
                 modifier = Modifier.fillMaxWidth(),
-                onClick = { navController.navigate(Screen.Camera.route) }
+                onClick = { navController.navigate(Screen.CameraGuide.route) }
             )
 
             // ── Gallery Card ──────────────────────────

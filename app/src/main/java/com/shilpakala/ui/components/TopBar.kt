@@ -40,9 +40,6 @@ fun ShilpaKalaTopBar(
     val prefs = remember { UserPreferences(context) }
     val scope = rememberCoroutineScope()
 
-    // ── Observe global language state ────────────────────
-    val currentLang by LanguageManager.currentLanguageFlow.collectAsState()
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -56,7 +53,6 @@ fun ShilpaKalaTopBar(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-
         // ── Screen Title ──────────────────────────────
         Text(
             text = title,
@@ -68,27 +64,20 @@ fun ShilpaKalaTopBar(
         Row(
             modifier = Modifier
                 .clip(RoundedCornerShape(20.dp))
-                .border(
-                    1.dp,
-                    WarmCream.copy(alpha = 0.5f),
-                    RoundedCornerShape(20.dp)
-                )
+                .border(1.dp, WarmCream.copy(alpha = 0.5f), RoundedCornerShape(20.dp))
                 .background(Terracotta),
             verticalAlignment = Alignment.CenterVertically
         ) {
-
             // English Option
             LanguageChipItem(
                 label = "EN",
-                isSelected = currentLang == "en",
+                isSelected = LanguageManager.currentLanguage == "en",
                 onClick = {
-                    if (currentLang != "en") {
+                    if (LanguageManager.currentLanguage != "en") {
                         LanguageManager.currentLanguage = "en"
-
                         scope.launch {
                             prefs.saveLanguage("en")
                         }
-
                         onLanguageChanged()
                     }
                 }
@@ -99,15 +88,13 @@ fun ShilpaKalaTopBar(
             // Kannada Option
             LanguageChipItem(
                 label = "ಕನ್ನಡ",
-                isSelected = currentLang == "kn",
+                isSelected = LanguageManager.currentLanguage == "kn",
                 onClick = {
-                    if (currentLang != "kn") {
+                    if (LanguageManager.currentLanguage != "kn") {
                         LanguageManager.currentLanguage = "kn"
-
                         scope.launch {
                             prefs.saveLanguage("kn")
                         }
-
                         onLanguageChanged()
                     }
                 }

@@ -15,6 +15,8 @@ import android.os.Environment
 import android.provider.MediaStore
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.shilpakala.data.local.ShilpaKalaDatabase
+import com.shilpakala.data.local.entity.PhotoEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,7 +24,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Locale
-import java.io.IOException
 
 data class LabelEditorUiState(
     val productName: String = "",
@@ -34,6 +35,9 @@ data class LabelEditorUiState(
 )
 
 class LabelEditorViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val db = ShilpaKalaDatabase.getDatabase(application)
+    private val photoDao = db.photoDao()
 
     private val _uiState = MutableStateFlow(LabelEditorUiState())
     val uiState: StateFlow<LabelEditorUiState> = _uiState
@@ -76,7 +80,7 @@ class LabelEditorViewModel(application: Application) : AndroidViewModel(applicat
     }
 
     // ── Core Image Processing ─────────────────────────
-    private suspend fun processImage(imageUri: String): String {
+    private fun processImage(imageUri: String): String {
         val context = getApplication<Application>()
 
         // Load original bitmap
@@ -99,16 +103,13 @@ class LabelEditorViewModel(application: Application) : AndroidViewModel(applicat
         }
         canvas.drawRect(0f, labelTop, width, height, labelPaint)
 
-        // ── "Handmade in Karnataka" Text ──────────────
-        val brandPaint = Paint().apply {
-            color = Color.rgb(212, 160, 23) // Heritage Gold
-            textSize = width * 0.045f
-            typeface = Typeface.create(Typeface.SERIF, Typeface.BOLD)
-            isAntiAlias = true
-        }
-        val brandText = "✦ Handmade in Karnataka ✦"
-        val brandX = (width - brandPaint.measureText(brandText)) / 2
-        canvas.drawText(brandText, brandX, labelTop + labelHeight * 0.28f, brandPaint)
+        // ── Handmade in Karnataka Badge ──────────────
+        drawHandmadeBadge(
+            canvas = canvas,
+            x = width * 0.15f,
+            y = labelTop + labelHeight * 0.28f,
+            size = width * 0.12f
+        )
 
         // ── Product Name ──────────────────────────────
         val productPaint = Paint().apply {
@@ -118,8 +119,9 @@ class LabelEditorViewModel(application: Application) : AndroidViewModel(applicat
             isAntiAlias = true
         }
         val productText = _uiState.value.productName.ifEmpty { "Handicraft Product" }
-        val productX = (width - productPaint.measureText(productText)) / 2
-        canvas.drawText(productText, productX, labelTop + labelHeight * 0.52f, productPaint)
+        val productX = width * 0.35f
+        val productY = labelTop + labelHeight * 0.52f
+        canvas.drawText(productText, productX, productY, productPaint)
 
         // ── Wood Type + Price Row ─────────────────────
         val detailPaint = Paint().apply {
@@ -129,7 +131,7 @@ class LabelEditorViewModel(application: Application) : AndroidViewModel(applicat
         }
 
         val woodText = "🪵 ${_uiState.value.woodType.ifEmpty { "Natural Wood" }}"
-        canvas.drawText(woodText, width * 0.06f, labelTop + labelHeight * 0.76f, detailPaint)
+        canvas.drawText(woodText, width * 0.35f, labelTop + labelHeight * 0.76f, detailPaint)
 
         val priceText = "₹ ${_uiState.value.price.ifEmpty { "--" }}"
         val priceX = width - detailPaint.measureText(priceText) - width * 0.06f
@@ -142,7 +144,7 @@ class LabelEditorViewModel(application: Application) : AndroidViewModel(applicat
             alpha = 150
         }
         canvas.drawLine(
-            width * 0.06f,
+            width * 0.35f,
             labelTop + labelHeight * 0.62f,
             width * 0.94f,
             labelTop + labelHeight * 0.62f,
@@ -167,22 +169,88 @@ class LabelEditorViewModel(application: Application) : AndroidViewModel(applicat
         val uri = context.contentResolver.insert(
             MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
             contentValues
-        ) ?: throw IOException("Failed to create image file URI")
+        )
 
-        context.contentResolver.openOutputStream(uri)?.use { out ->
+        context.contentResolver.openOutputStream(uri!!)?.use { out ->
             bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
         }
 
-        // Save to Room DB
-        val db = com.shilpakala.data.local.ShilpaKalaDatabase.getDatabase(context)
-        val photo = com.shilpakala.data.local.entity.PhotoEntity(
-            imagePath = uri.toString(),
-            productName = _uiState.value.productName,
-            woodType = _uiState.value.woodType,
-            price = _uiState.value.price
-        )
-        db.photoDao().insertPhoto(photo)
+        // ── Save to Room DB ───────────────────────────
+        viewModelScope.launch {
+            photoDao.insertPhoto(
+                PhotoEntity(
+                    imagePath = uri.toString(),
+                    productName = _uiState.value.productName,
+                    woodType = _uiState.value.woodType,
+                    price = _uiState.value.price
+                )
+            )
+        }
 
         return uri.toString()
+    }
+
+    // ── Draw Handmade Badge ────────────────────────
+    private fun drawHandmadeBadge(
+        canvas: Canvas,
+        x: Float,
+        y: Float,
+        size: Float
+    ) {
+        // Outer circle (Terracotta)
+        val outerPaint = Paint().apply {
+            color = Color.rgb(192, 82, 42) // Terracotta
+            style = Paint.Style.FILL
+            isAntiAlias = true
+        }
+        canvas.drawCircle(x, y, size, outerPaint)
+
+        // Inner circle (Heritage Gold)
+        val innerPaint = Paint().apply {
+            color = Color.rgb(212, 160, 23) // Heritage Gold
+            style = Paint.Style.FILL
+            isAntiAlias = true
+        }
+        canvas.drawCircle(x, y, size * 0.85f, innerPaint)
+
+        // White border (decorative)
+        val borderPaint = Paint().apply {
+            color = Color.WHITE
+            style = Paint.Style.STROKE
+            strokeWidth = size * 0.08f
+            isAntiAlias = true
+        }
+        canvas.drawCircle(x, y, size * 0.88f, borderPaint)
+
+        // "Handmade in Karnataka" text
+        val textPaint = Paint().apply {
+            color = Color.rgb(192, 82, 42) // Terracotta
+            textSize = size * 0.25f
+            typeface = Typeface.create(Typeface.SERIF, Typeface.BOLD)
+            isAntiAlias = true
+        }
+
+        // Top text: "Handmade"
+        val topText = "Handmade"
+        val topX = x - (textPaint.measureText(topText) / 2)
+        val topY = y - (size * 0.2f)
+        canvas.drawText(topText, topX, topY, textPaint)
+
+        // Bottom text: "in Karnataka"
+        val bottomText = "in Karnataka"
+        val bottomX = x - (textPaint.measureText(bottomText) / 2)
+        val bottomY = y + (size * 0.5f)
+        canvas.drawText(bottomText, bottomX, bottomY, textPaint)
+
+        // Center star ✦
+        val starPaint = Paint().apply {
+            color = Color.WHITE
+            textSize = size * 0.4f
+            isAntiAlias = true
+        }
+        val star = "✦"
+        val starX = x - (starPaint.measureText(star) / 2)
+        val starY = y + (size * 0.12f)
+        canvas.drawText(star, starX, starY, starPaint)
     }
 }

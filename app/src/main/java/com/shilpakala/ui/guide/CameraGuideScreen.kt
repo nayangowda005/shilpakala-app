@@ -3,7 +3,6 @@ package com.shilpakala.ui.guide
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
@@ -16,8 +15,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -28,14 +29,14 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -68,7 +69,7 @@ data class GuideStep(
 
 @Composable
 fun CameraGuideScreen(navController: NavHostController) {
-    var currentStep by remember { mutableStateOf(1) }
+    val currentStep = remember { mutableIntStateOf(1) }
 
     val steps = listOf(
         GuideStep(
@@ -138,7 +139,6 @@ fun CameraGuideScreen(navController: NavHostController) {
             .fillMaxSize()
             .background(WarmCream)
     ) {
-        // ── Top Bar ───────────────────────────────────
         ShilpaKalaTopBar(
             title = LanguageManager.text(
                 "Camera Guide 📸",
@@ -146,7 +146,7 @@ fun CameraGuideScreen(navController: NavHostController) {
             )
         )
 
-        val step = steps[currentStep - 1]
+        val step = steps[currentStep.value - 1]
 
         Column(
             modifier = Modifier
@@ -154,10 +154,8 @@ fun CameraGuideScreen(navController: NavHostController) {
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // ── Progress Bar ──────────────────────────
-            Column(
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            // Progress Bar
+            Column(modifier = Modifier.fillMaxWidth()) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -165,21 +163,21 @@ fun CameraGuideScreen(navController: NavHostController) {
                 ) {
                     Text(
                         text = LanguageManager.text(
-                            "Step $currentStep of 5",
-                            "ಹಂತ $currentStep / 5"
+                            "Step ${currentStep.value} of 5",
+                            "ಹಂತ ${currentStep.value} / 5"
                         ),
                         style = MaterialTheme.typography.labelMedium,
                         color = MediumBrown
                     )
                     Text(
-                        text = "${(currentStep * 20)}%",
+                        text = "${currentStep.value * 20}%",
                         style = MaterialTheme.typography.labelSmall,
                         color = Terracotta
                     )
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 LinearProgressIndicator(
-                    progress = { currentStep / 5f },
+                    progress = { currentStep.value / 5f },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(6.dp)
@@ -189,7 +187,7 @@ fun CameraGuideScreen(navController: NavHostController) {
                 )
             }
 
-            // ── Step Content ──────────────────────────
+            // Step Content
             AnimatedVisibility(
                 visible = true,
                 enter = slideInHorizontally() + fadeIn(),
@@ -204,22 +202,16 @@ fun CameraGuideScreen(navController: NavHostController) {
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // Emoji
                     Text(
                         text = step.emoji,
-                        style = MaterialTheme.typography.displayLarge,
-                        modifier = Modifier.size(64.dp)
+                        style = MaterialTheme.typography.displayLarge
                     )
-
-                    // Title
                     Text(
                         text = LanguageManager.text(step.titleEn, step.titleKn),
                         style = MaterialTheme.typography.headlineSmall,
                         color = Terracotta,
                         textAlign = TextAlign.Center
                     )
-
-                    // Instruction
                     Text(
                         text = LanguageManager.text(
                             step.instructionEn,
@@ -232,7 +224,7 @@ fun CameraGuideScreen(navController: NavHostController) {
                 }
             }
 
-            // ── Animation Area ─────────────────────────
+            // Animation Area
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -242,7 +234,7 @@ fun CameraGuideScreen(navController: NavHostController) {
                     .border(2.dp, LightSand, RoundedCornerShape(16.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                when (currentStep) {
+                when (currentStep.value) {
                     1 -> AnimationStep1()
                     2 -> AnimationStep2()
                     3 -> AnimationStep3()
@@ -251,7 +243,7 @@ fun CameraGuideScreen(navController: NavHostController) {
                 }
             }
 
-            // ── Why & Hint Box ─────────────────────────
+            // Why & Hint Box
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -284,39 +276,31 @@ fun CameraGuideScreen(navController: NavHostController) {
                 )
             }
 
-            // ── Navigation Buttons ─────────────────────
+            // Navigation Buttons
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Back Button
                 OutlinedButton(
-                    onClick = {
-                        if (currentStep > 1) currentStep--
-                    },
-                    enabled = currentStep > 1,
+                    onClick = { if (currentStep.value > 1) currentStep.value-- },
+                    enabled = currentStep.value > 1,
                     modifier = Modifier
                         .weight(1f)
                         .height(48.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    border = androidx.compose.foundation.BorderStroke(
-                        1.dp,
-                        if (currentStep > 1) Terracotta else LightSand
-                    )
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
                         text = LanguageManager.text("← Back", "← ಹಿಂದಕ್ಕೆ"),
                         style = MaterialTheme.typography.labelMedium,
-                        color = if (currentStep > 1) Terracotta else LightSand
+                        color = if (currentStep.value > 1) Terracotta else LightSand
                     )
                 }
 
-                // Next/Open Camera Button
-                if (currentStep < 5) {
+                if (currentStep.value < 5) {
                     Button(
-                        onClick = { currentStep++ },
+                        onClick = { currentStep.value++ },
                         modifier = Modifier
                             .weight(1f)
                             .height(48.dp),
@@ -361,173 +345,98 @@ fun CameraGuideScreen(navController: NavHostController) {
     }
 }
 
-// ════════════════════════════════════════════════════════════
-// ANIMATION COMPOSABLES
-// ════════════════════════════════════════════════════════════
-
 @Composable
 fun AnimationStep1() {
-    var showClean by remember { mutableStateOf(false) }
+    val showClean = remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         delay(500)
-        showClean = true
+        showClean.value = true
     }
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
+        modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.Center
     ) {
-        // Dirty Product
         AnimatedVisibility(
-            visible = !showClean,
+            visible = !showClean.value,
             exit = slideOutHorizontally(targetOffsetX = { -300 }) + fadeOut()
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = "🪵💨",
-                    style = MaterialTheme.typography.displayMedium,
-                    modifier = Modifier.size(80.dp)
-                )
-                Text(
-                    text = LanguageManager.text("Dirty", "ಕೆಸರಿನ"),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MediumBrown
-                )
-            }
+            Text(text = "🪵💨", style = MaterialTheme.typography.displayLarge)
         }
 
-        // Clean Product
         AnimatedVisibility(
-            visible = showClean,
+            visible = showClean.value,
             enter = slideInHorizontally(initialOffsetX = { 300 }) + fadeIn()
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = "🪵✨",
-                    style = MaterialTheme.typography.displayMedium,
-                    modifier = Modifier.size(80.dp)
-                )
-                Text(
-                    text = LanguageManager.text("Clean!", "ಶುಚ್ಛ!"),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = SuccessGreen
-                )
-            }
+            Text(text = "🪵✨", style = MaterialTheme.typography.displayLarge)
         }
     }
 }
 
 @Composable
 fun AnimationStep2() {
-    var tiltAngle by remember { mutableStateOf(0f) }
-    var isWrong by remember { mutableStateOf(true) }
+    val tiltAngle = remember { mutableStateOf(0f) }
 
     LaunchedEffect(Unit) {
         while (true) {
-            // Show wrong angles
-            tiltAngle = 30f
+            tiltAngle.value = 30f
             delay(800)
-            tiltAngle = -30f
+            tiltAngle.value = -30f
             delay(800)
-            tiltAngle = 0f
-            isWrong = false
+            tiltAngle.value = 0f
             delay(1000)
-            isWrong = true
         }
     }
 
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.Center
     ) {
-        // Phone Animation
         Box(
             modifier = Modifier
                 .size(60.dp, 100.dp)
                 .clip(RoundedCornerShape(8.dp))
                 .background(DeepBrown)
                 .border(2.dp, HeritagGold, RoundedCornerShape(8.dp))
-                .rotate(tiltAngle)
+                .rotate(tiltAngle.value)
         )
 
-        // Status
-        Text(
-            text = if (isWrong) {
-                LanguageManager.text("❌ Tilted", "❌ ಕೋನದಲ್ಲಿ")
-            } else {
-                LanguageManager.text("✓ Straight!", "✓ ಸರಳ!")
-            },
-            style = MaterialTheme.typography.labelMedium,
-            color = if (isWrong) Color.Red else SuccessGreen
-        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(text = "📱", style = MaterialTheme.typography.displaySmall)
     }
 }
 
 @Composable
 fun AnimationStep3() {
-    var lightIntensity by remember { mutableStateOf(0.3f) }
-
-    LaunchedEffect(Unit) {
-        while (true) {
-            lightIntensity = 0.3f // dark
-            delay(1000)
-            lightIntensity = 1f // bright
-            delay(1500)
-        }
-    }
-
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.Center
     ) {
-        // Product with changing brightness
         Box(
             modifier = Modifier
                 .size(80.dp)
                 .clip(CircleShape)
-                .background(
-                    Color.Yellow.copy(alpha = lightIntensity)
-                )
+                .background(Color.Yellow.copy(alpha = 0.7f))
         )
 
-        Text(
-            text = "💡",
-            style = MaterialTheme.typography.displaySmall
-        )
-
-        Text(
-            text = if (lightIntensity > 0.6f) {
-                LanguageManager.text("Good light!", "ಸುಲಭವಾದ ಬೆಳಕು!")
-            } else {
-                LanguageManager.text("Too dark", "ತುಂಬಾ ಕತ್ತಲೆ")
-            },
-            style = MaterialTheme.typography.labelMedium,
-            color = if (lightIntensity > 0.6f) SuccessGreen else Color.DarkGray
-        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(text = "💡", style = MaterialTheme.typography.displaySmall)
     }
 }
 
 @Composable
 fun AnimationStep4() {
-    var frameOffset by remember { mutableStateOf(0f) }
+    val frameOffsetX = remember { mutableStateOf(300f) }
 
     LaunchedEffect(Unit) {
         while (true) {
-            frameOffset = 300f
+            frameOffsetX.value = 300f
             delay(500)
-            frameOffset = 0f
+            frameOffsetX.value = 0f
             delay(1500)
         }
     }
@@ -537,7 +446,6 @@ fun AnimationStep4() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // Dotted Frame
         Box(
             modifier = Modifier
                 .size(120.dp)
@@ -546,28 +454,23 @@ fun AnimationStep4() {
                     color = HeritagGold,
                     shape = RoundedCornerShape(8.dp)
                 )
-                .padding(horizontal = (frameOffset / 30).dp)
+                .offset(x = (frameOffsetX.value / 30).dp)
         )
 
         Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = LanguageManager.text("Centered!", "ಮಧ್ಯದಲ್ಲಿ!"),
-            style = MaterialTheme.typography.labelMedium,
-            color = SuccessGreen
-        )
+        Text(text = "📐", style = MaterialTheme.typography.displaySmall)
     }
 }
 
 @Composable
 fun AnimationStep5() {
-    var pulseScale by remember { mutableStateOf(1f) }
+    val pulseScale = remember { mutableStateOf(1f) }
 
     LaunchedEffect(Unit) {
         while (true) {
-            pulseScale = 1f
+            pulseScale.value = 1f
             delay(500)
-            pulseScale = 1.1f
+            pulseScale.value = 1.1f
             delay(500)
         }
     }
@@ -575,15 +478,15 @@ fun AnimationStep5() {
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.Center
     ) {
-        // Checkmark
         Box(
             modifier = Modifier
                 .size(100.dp)
                 .clip(CircleShape)
                 .background(SuccessGreen.copy(alpha = 0.2f))
                 .border(3.dp, SuccessGreen, CircleShape)
+                .scale(pulseScale.value)
         ) {
             Text(
                 text = "✓",
@@ -593,14 +496,7 @@ fun AnimationStep5() {
             )
         }
 
-        Text(
-            text = LanguageManager.text(
-                "Perfect! You're ready!",
-                "ನಿಖುಂತ! ನೀವು ಸಿದ್ಧವಾಗಿದ್ದೀರಿ!"
-            ),
-            style = MaterialTheme.typography.titleMedium,
-            color = SuccessGreen,
-            textAlign = TextAlign.Center
-        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(text = "✅", style = MaterialTheme.typography.displaySmall)
     }
 }

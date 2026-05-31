@@ -1,5 +1,6 @@
 package com.shilpakala.ui.navigation
 
+import com.shilpakala.ui.guide.CameraGuideScreen
 import com.shilpakala.ui.gallery.GalleryScreen
 import com.shilpakala.ui.preview.PreviewScreen
 import com.shilpakala.ui.editor.LabelEditorScreen
@@ -36,6 +37,11 @@ fun NavGraph(
         // ── Home ─────────────────────────────────────
         composable(Screen.Home.route) {
             HomeScreen(navController = navController)
+        }
+
+        // ── Camera Guide ──────────────────────────────
+        composable(Screen.CameraGuide.route) {
+            CameraGuideScreen(navController = navController)
         }
 
         // ── Camera ───────────────────────────────────
